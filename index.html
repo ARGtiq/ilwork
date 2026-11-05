@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>ILwork</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#a8c5b8">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        work: 'var(--work)',
+        off: 'var(--off)',
+        vacation: 'var(--vacation)',
+        sick: 'var(--sick)',
+        extra: 'var(--extra)',
+        today: 'var(--today)',
+      }
+    }
+  }
+}
+</script>
+<style>
+:root {
+  --bg: #f7f3ef;
+  --card: #fffdfb;
+  --text: #3d3a36;
+  --muted: #8a847c;
+  --accent: #a8c5b8;
+  --work: #c8e0d5;
+  --off: #f0e6dc;
+  --vacation: #e8d4c4;
+  --sick: #d4c8e0;
+  --extra: #e0d4c8;
+  --today: #b8d4c8;
+  --border: #e8e2dc;
+}
+[data-theme="dark"] {
+  --bg: #1e1c1a;
+  --card: #2a2725;
+  --text: #e8e4df;
+  --muted: #9a948c;
+  --accent: #7a9a8a;
+  --work: #3a4a44;
+  --off: #3a3632;
+  --vacation: #4a4038;
+  --sick: #403848;
+  --extra: #484038;
+  --today: #4a5a54;
+  --border: #3a3632;
+}
+body { background: var(--bg); color: var(--text); transition: background .3s, color .3s; }
+</style>
+</head>
+<body class="min-h-screen p-3 sm:p-4 antialiased">
+<header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+  <h1 class="text-2xl font-semibold tracking-tight">ILwork</h1>
+  <div class="flex flex-wrap gap-2">
+    <select id="theme" class="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50">
+      <option value="auto">Авто</option>
+      <option value="light">День</option>
+      <option value="dark">Ночь</option>
+    </select>
+    <select id="palette" class="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50">
+      <option value="sage">Шалфей</option>
+      <option value="blush">Румянец</option>
+      <option value="sky">Небо</option>
+      <option value="sand">Песок</option>
+    </select>
+    <button id="exportBtn" class="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm hover:bg-[var(--accent)]/10 active:scale-95 transition">Экспорт</button>
+    <button id="importBtn" class="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm hover:bg-[var(--accent)]/10 active:scale-95 transition">Импорт</button>
+    <input type="file" id="importFile" accept=".json" class="hidden">
+  </div>
+</header>
+
+<div id="setup" class="bg-[var(--card)] rounded-2xl border border-[var(--border)] shadow-sm p-4 sm:p-5 mb-5">
+  <label class="block text-xs text-[var(--muted)] mb-1">График</label>
+  <select id="pattern" class="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50">
+    <option value="2-2">2 на 2</option>
+    <option value="5-2">5 на 2</option>
+    <option value="3-3">3 на 3</option>
+    <option value="4-2">4 на 2</option>
+    <option value="1-1">1 на 1</option>
+    <option value="custom">Свой</option>
+  </select>
+  <div id="customRow" class="hidden mt-3 grid grid-cols-2 gap-2">
+    <div>
+      <label class="block text-xs text-[var(--muted)] mb-1">Рабочих</label>
+      <input type="number" id="customWork" min="1" value="2" class="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50">
+    </div>
+    <div>
+      <label class="block text-xs text-[var(--muted)] mb-1">Выходных</label>
+      <input type="number" id="customOff" min="1" value="2" class="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50">
+    </div>
+  </div>
+  <label class="block text-xs text-[var(--muted)] mt-3 mb-1">Дата начала цикла</label>
+  <input type="date" id="startDate" class="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50">
+  <button id="saveSetup" class="mt-4 w-full rounded-xl bg-[var(--accent)] text-white py-2.5 text-sm font-medium hover:opacity-90 active:scale-[0.98] transition">Сохранить</button>
+</div>
+
+<div class="flex items-center justify-between mb-3">
+  <button id="prev" class="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-lg hover:bg-[var(--accent)]/10 active:scale-95">‹</button>
+  <div id="monthTitle" class="font-medium"></div>
+  <button id="next" class="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-lg hover:bg-[var(--accent)]/10 active:scale-95">›</button>
+</div>
+
+<div class="grid grid-cols-7 text-center text-xs text-[var(--muted)] mb-1">
+  <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+</div>
+<div id="calendar" class="grid grid-cols-7 gap-1"></div>
+
+<div class="flex flex-wrap gap-3 mt-5 text-xs">
+  <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[var(--work)]"></span> Рабочий</span>
+  <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[var(--off)]"></span> Выходной</span>
+  <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[var(--vacation)]"></span> Отпуск/отгул</span>
+  <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[var(--sick)]"></span> Больничный</span>
+  <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[var(--extra)]"></span> Доп. смена</span>
+</div>
+
+<div id="modal" class="fixed inset-0 bg-black/40 hidden items-end justify-center z-50">
+  <div class="bg-[var(--card)] w-full max-w-md rounded-t-2xl border-t border-[var(--border)] p-5 shadow-xl">
+    <h3 id="modalDate" class="font-medium mb-3"></h3>
+    <div class="space-y-2">
+      <button data-type="reset" class="w-full text-left rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm hover:bg-[var(--accent)]/10">По графику</button>
+      <button data-type="vacation" class="w-full text-left rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm hover:bg-[var(--accent)]/10">Отпуск / отгул (сдвиг)</button>
+      <button data-type="sick" class="w-full text-left rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm hover:bg-[var(--accent)]/10">Больничный (сдвиг)</button>
+      <button data-type="extra" class="w-full text-left rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm hover:bg-[var(--accent)]/10">Доп. смена (без сдвига)</button>
+      <button id="closeModal" class="w-full rounded-xl bg-[var(--border)] px-4 py-2.5 text-sm mt-2">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+let state = {
+  pattern: { work: 2, off: 2 },
+  startDate: null,
+  overrides: {},
+  theme: 'auto',
+  palette: 'sage'
+};
+
+const palettes = {
+  sage: {
+    light: { accent: '#a8c5b8', work: '#c8e0d5', off: '#f0e6dc', vacation: '#e8d4c4', sick: '#d4c8e0', extra: '#e0d4c8', today: '#b8d4c8' },
+    dark:  { accent: '#7a9a8a', work: '#3a4a44', off: '#3a3632', vacation: '#4a4038', sick: '#403848', extra: '#484038', today: '#4a5a54' }
+  },
+  blush: {
+    light: { accent: '#e0b8c0', work: '#f0d0d8', off: '#f5ebe8', vacation: '#e8d0c8', sick: '#d8c8e0', extra: '#e0d0c8', today: '#e0c0c8' },
+    dark:  { accent: '#a08088', work: '#4a383c', off: '#3a3230', vacation: '#4a3834', sick: '#403848', extra: '#483838', today: '#5a4048' }
+  },
+  sky: {
+    light: { accent: '#b0c8e0', work: '#d0e0f0', off: '#e8f0f5', vacation: '#d8e0e8', sick: '#c8d0e0', extra: '#d0d8e0', today: '#c0d0e0' },
+    dark:  { accent: '#7088a0', work: '#384048', off: '#323438', vacation: '#383c44', sick: '#343848', extra: '#384044', today: '#405060' }
+  },
+  sand: {
+    light: { accent: '#d0c0a8', work: '#e8dcc8', off: '#f5f0e8', vacation: '#e0d0c0', sick: '#d0c8c0', extra: '#e0d8c8', today: '#d8c8b0' },
+    dark:  { accent: '#a09078', work: '#4a4438', off: '#3a3630', vacation: '#4a4038', sick: '#403c38', extra: '#484038', today: '#5a5040' }
+  }
+};
+
+function load() {
+  const s = localStorage.getItem('ilwork');
+  if (s) state = { ...state, ...JSON.parse(s) };
+  if (!state.startDate) state.startDate = new Date().toISOString().slice(0, 10);
+  applyTheme();
+  applyPalette();
+  $('#pattern').value = state.pattern.work + '-' + state.pattern.off;
+  $('#startDate').value = state.startDate;
+  $('#theme').value = state.theme;
+  $('#palette').value = state.palette;
+  render();
+}
+
+function save() {
+  localStorage.setItem('ilwork', JSON.stringify(state));
+}
+
+function applyTheme() {
+  const t = state.theme === 'auto'
+    ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : state.theme;
+  document.documentElement.dataset.theme = t;
+  document.documentElement.classList.toggle('dark', t === 'dark');
+}
+
+function applyPalette() {
+  const mode = document.documentElement.dataset.theme || 'light';
+  const p = palettes[state.palette][mode];
+  const r = document.documentElement.style;
+  r.setProperty('--accent', p.accent);
+  r.setProperty('--work', p.work);
+  r.setProperty('--off', p.off);
+  r.setProperty('--vacation', p.vacation);
+  r.setProperty('--sick', p.sick);
+  r.setProperty('--extra', p.extra);
+  r.setProperty('--today', p.today);
+}
+
+function getDayType(dateStr, cycleStart) {
+  if (state.overrides[dateStr] && state.overrides[dateStr] !== 'reset') {
+    return state.overrides[dateStr];
+  }
+  if (!cycleStart) return 'off';
+  const start = new Date(cycleStart);
+  const d = new Date(dateStr);
+  const diff = Math.floor((d - start) / 86400000);
+  if (diff < 0) return 'off';
+  const cycle = state.pattern.work + state.pattern.off;
+  const pos = diff % cycle;
+  return pos < state.pattern.work ? 'work' : 'off';
+}
+
+function render() {
+  const now = new Date();
+  let view = new Date(now.getFullYear(), now.getMonth(), 1);
+  if (window.viewMonth) view = new Date(window.viewMonth);
+  else window.viewMonth = view.toISOString().slice(0, 7);
+
+  const y = view.getFullYear();
+  const m = view.getMonth();
+  $('#monthTitle').textContent = view.toLocaleDateString('ru', { month: 'long', year: 'numeric' });
+
+  const first = new Date(y, m, 1);
+  let startDay = first.getDay() || 7;
+  startDay = startDay === 0 ? 6 : startDay - 1;
+
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const cal = $('#calendar');
+  cal.innerHTML = '';
+
+  for (let i = 0; i < startDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'aspect-square';
+    cal.appendChild(el);
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(y, m, d);
+    const ds = date.toISOString().slice(0, 10);
+    const type = getDayType(ds, state.startDate);
+    const el = document.createElement('div');
+    el.className = `aspect-square rounded-xl flex flex-col items-center justify-center text-sm cursor-pointer active:scale-95 transition bg-[var(--${type})] ${ds === todayStr ? 'ring-2 ring-[var(--today)]' : ''}`;
+    el.innerHTML = `<div class="font-semibold">${d}</div><div class="text-[10px] opacity-70">${type === 'work' ? 'раб' : type === 'off' ? 'вых' : type === 'vacation' ? 'отп' : type === 'sick' ? 'бол' : type === 'extra' ? 'доп' : ''}</div>`;
+    el.onclick = () => openModal(ds);
+    cal.appendChild(el);
+  }
+}
+
+function openModal(ds) {
+  $('#modalDate').textContent = new Date(ds).toLocaleDateString('ru');
+  $('#modal').classList.remove('hidden');
+  $('#modal').classList.add('flex');
+  $$('#modal button[data-type]').forEach(b => {
+    b.onclick = () => {
+      const t = b.dataset.type;
+      if (t === 'reset') delete state.overrides[ds];
+      else state.overrides[ds] = t;
+      save();
+      closeModal();
+      render();
+    };
+  });
+}
+
+function closeModal() {
+  $('#modal').classList.add('hidden');
+  $('#modal').classList.remove('flex');
+}
+
+$('#closeModal').onclick = closeModal;
+$('#modal').onclick = (e) => { if (e.target.id === 'modal') closeModal(); };
+
+$('#prev').onclick = () => {
+  const d = new Date(window.viewMonth + '-01');
+  d.setMonth(d.getMonth() - 1);
+  window.viewMonth = d.toISOString().slice(0, 7);
+  render();
+};
+$('#next').onclick = () => {
+  const d = new Date(window.viewMonth + '-01');
+  d.setMonth(d.getMonth() + 1);
+  window.viewMonth = d.toISOString().slice(0, 7);
+  render();
+};
+
+$('#pattern').onchange = () => {
+  const v = $('#pattern').value;
+  $('#customRow').classList.toggle('hidden', v !== 'custom');
+};
+$('#saveSetup').onclick = () => {
+  const v = $('#pattern').value;
+  if (v === 'custom') {
+    state.pattern = { work: +$('#customWork').value || 2, off: +$('#customOff').value || 2 };
+  } else {
+    const [w, o] = v.split('-').map(Number);
+    state.pattern = { work: w, off: o };
+  }
+  state.startDate = $('#startDate').value;
+  save();
+  $('#setup').classList.add('hidden');
+  render();
+};
+
+$('#theme').onchange = () => {
+  state.theme = $('#theme').value;
+  save();
+  applyTheme();
+  applyPalette();
+};
+$('#palette').onchange = () => {
+  state.palette = $('#palette').value;
+  save();
+  applyPalette();
+};
+
+$('#exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ilwork-backup.json';
+  a.click();
+};
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      state = { ...state, ...JSON.parse(r.result) };
+      save();
+      load();
+    } catch (err) { alert('Ошибка файла'); }
+  };
+  r.readAsText(f);
+};
+
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (state.theme === 'auto') { applyTheme(); applyPalette(); }
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+load();
+</script>
+</body>
+</html>
